@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#1D9E75">
+  <title>FinanzasDuo</title>
+  <link rel="stylesheet" href="/static/css/main.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="app-root" id="app">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-panel">
+      <div class="sidebar-header">
+        <span class="sidebar-logo">FinanzasDuo</span>
+        <button class="icon-btn" onclick="closeSidebar()">&#10005;</button>
+      </div>
+      <a class="sidebar-item active" id="nav-overview" onclick="navTo('overview')">Overview</a>
+      <div class="sidebar-divider"></div>
+      <div class="sidebar-section">Vistas personales</div>
+      <div id="sidebar-miembros"></div>
+      <div class="sidebar-divider"></div>
+      <a class="sidebar-item" id="nav-metricas" onclick="navTo('metricas')">Metricas</a>
+      <a class="sidebar-item" id="nav-deudas"   onclick="navTo('deudas')">Deudas</a>
+      <a class="sidebar-item" id="nav-ahorros"  onclick="navTo('ahorros')">Ahorros</a>
+      <a class="sidebar-item" id="nav-ia"       onclick="navTo('ia')">Asistente IA</a>
+      <div class="sidebar-divider"></div>
+      <a class="sidebar-item" id="nav-config"   onclick="navTo('config')">Configuracion</a>
+      <a class="sidebar-item" onclick="logout()" style="color:var(--danger)">Cerrar sesion</a>
+    </div>
+    <div class="sidebar-overlay" onclick="closeSidebar()"></div>
+  </div>
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button class="icon-btn" onclick="openSidebar()" style="font-size:18px;">&#9776;</button>
+      <div>
+        <div class="topbar-title" id="topbar-title">FinanzasDuo</div>
+        <div class="topbar-sub"   id="topbar-sub">Finanzas compartidas</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <!-- Indicador de sync en tiempo real -->
+      <div id="sync-indicator" style="width:6px;height:6px;border-radius:50%;background:var(--acc);opacity:0;transition:opacity 0.5s;" title="Sincronizado"></div>
+      <button class="icon-btn" onclick="toggleTemas()" title="Cambiar tema" style="font-size:16px;">&#9681;</button>
+      <div id="topbar-avatares" style="display:flex;"></div>
+    </div>
+  </div>
+
+  <!-- PANEL DE TEMAS (toggle, Punto 6) -->
+  <div id="tema-panel" style="display:none;position:sticky;top:56px;z-index:25;background:var(--bg-0);border-bottom:0.5px solid var(--brd);padding:16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <span style="font-size:14px;font-weight:500;">Tema visual</span>
+      <button class="icon-btn" onclick="cerrarTemas()">&#10005;</button>
+    </div>
+    <div id="temas-list"></div>
+  </div>
+
+  <!-- VISTAS -->
+  <div id="views">
+
+    <!-- OVERVIEW -->
+    <div class="view active" id="view-overview">
+      <div class="tab-row">
+        <button class="tab active" onclick="switchPeriodo(this,'mensual')">Mensual</button>
+        <button class="tab" onclick="switchPeriodo(this,'trimestral')">Trimestral</button>
+        <button class="tab" onclick="switchPeriodo(this,'anual')">Anual</button>
+      </div>
+      <div class="page-content">
+        <div class="card">
+          <div class="lbl" id="ov-lbl">Balance disponible</div>
+          <div style="font-size:26px;font-weight:500;color:var(--txt-0);margin:4px 0 2px;" id="ov-balance">CRC 0</div>
+          <div style="font-size:12px;color:var(--txt-1);" id="ov-sub">cargando...</div>
+          <div class="progress-wrap" style="margin-top:12px;">
+            <div class="progress-fill" id="ov-bar" style="width:0%;background:var(--acc);"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:5px;">
+            <span style="font-size:10px;color:var(--txt-1);" id="ov-pct-g">Gastado 0%</span>
+            <span style="font-size:10px;color:var(--txt-1);" id="ov-pct-d">Disponible 100%</span>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="card-sm"><div class="lbl">Ingresos</div><div style="font-size:18px;font-weight:500;" class="c-green" id="ov-ing">CRC 0</div></div>
+          <div class="card-sm"><div class="lbl">Gastos</div><div style="font-size:18px;font-weight:500;" class="c-red" id="ov-gas">CRC 0</div></div>
+          <div class="card-sm"><div class="lbl">Ahorros</div><div style="font-size:18px;font-weight:500;" class="c-blue" id="ov-aho">CRC 0</div></div>
+          <div class="card-sm">
+            <div class="lbl">Deudas</div>
+            <div style="font-size:18px;font-weight:500;" class="c-amber" id="ov-deu">CRC 0</div>
+            <div id="ov-deu-detalle"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div style="font-size:13px;font-weight:500;margin-bottom:12px;">Ingresos vs Gastos</div>
+          <canvas id="chart-overview" height="120"></canvas>
+        </div>
+        <div class="card">
+          <div style="font-size:13px;font-weight:500;margin-bottom:10px;">Indicadores financieros</div>
+          <div id="prop-rows"></div>
+        </div>
+        <div class="ai-strip" onclick="navTo('ia')">
+          <div class="ai-strip-text">Asistente IA: analisis y recomendaciones financieras personalizadas &#8594;</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- METRICAS -->
+    <div class="view" id="view-metricas">
+      <!-- Selector de mes -->
+      <div class="tab-row" id="met-meses-row" style="border-bottom:0.5px solid var(--brd);padding-bottom:8px;"></div>
+      <!-- Selector de tipo -->
+      <div class="tab-row" style="padding-top:8px;">
+        <button class="tab active" onclick="switchMetricaTab(this,'conjunta')">Conjunta</button>
+        <button class="tab" onclick="switchMetricaTab(this,'individual')">Individual</button>
+        <button class="tab" onclick="switchMetricaTab(this,'trimestral')">Deudas y Ahorros</button>
+      </div>
+      <div class="page-content">
+        <div class="card">
+          <div style="font-size:13px;font-weight:500;margin-bottom:12px;" id="met-title-1">Distribucion de gastos</div>
+          <canvas id="chart-pie" height="180"></canvas>
+          <div id="leyenda-pie" style="display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;"></div>
+        </div>
+        <div class="card">
+          <div style="font-size:13px;font-weight:500;margin-bottom:12px;" id="met-title-2">Tendencia 6 meses</div>
+          <canvas id="chart-linea" height="130"></canvas>
+        </div>
+        <div class="card">
+          <div style="font-size:13px;font-weight:500;margin-bottom:12px;" id="met-title-3">Comparativa</div>
+          <canvas id="chart-barras" height="120"></canvas>
+        </div>
+        <div id="met-kpis"></div>
+      </div>
+    </div>
+
+    <!-- DEUDAS -->
+    <div class="view" id="view-deudas">
+      <div class="page-content" style="padding-top:14px;">
+        <div id="deudas-resumen" class="card" style="margin-bottom:10px;"></div>
+        <div class="ai-strip" style="margin-bottom:12px;" onclick="navTo('ia')">
+          <div class="ai-strip-text">Plan IA: estrategia de pago optima para todas tus deudas &#8594;</div>
+        </div>
+        <div id="deudas-lista"></div>
+        <button class="btn btn-ghost btn-full" style="margin-top:4px;" onclick="abrirModalDeuda()">+ Agregar deuda</button>
+      </div>
+    </div>
+
+    <!-- AHORROS -->
+    <div class="view" id="view-ahorros">
+      <div class="page-content" style="padding-top:14px;">
+        <div id="ahorros-resumen" class="card" style="margin-bottom:10px;"></div>
+        <div class="ai-strip" style="margin-bottom:12px;" onclick="navTo('ia')">
+          <div class="ai-strip-text">IA: como distribuir el ahorro entre tus metas? &#8594;</div>
+        </div>
+        <button class="btn btn-ghost btn-full" style="margin-bottom:12px;" onclick="abrirModalMeta()">+ Nueva meta de ahorro</button>
+        <div id="ahorros-lista"></div>
+      </div>
+    </div>
+
+    <!-- ASISTENTE IA -->
+    <div class="view" id="view-ia">
+      <div id="ia-config-bar" style="padding:8px 14px;border-bottom:0.5px solid var(--brd);background:var(--bg-0);">
+        <button onclick="toggleIAConfig()" id="ia-config-btn" style="font-size:12px;color:var(--txt-1);background:none;border:none;cursor:pointer;">
+          Configurar API Key de Gemini
+        </button>
+        <div id="ia-config-panel" style="display:none;margin-top:10px;">
+          <div class="lbl">API Key de Gemini (gratis en aistudio.google.com)</div>
+          <input id="gemini-key-input" type="password" placeholder="Pega tu API Key aqui...">
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <button class="btn" style="flex:1;" onclick="toggleIAConfig()">Cancelar</button>
+            <button class="btn btn-primary" style="flex:1;" onclick="guardarGeminiKey()">Guardar API Key</button>
+          </div>
+        </div>
+      </div>
+      <div id="ia-mensajes" style="height:calc(100vh - 230px);overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:12px;">
+        <div style="display:flex;gap:8px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--acc-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--acc);font-size:14px;">&#129302;</div>
+          <div style="background:var(--card);border:0.5px solid var(--brd);border-radius:4px 12px 12px 12px;padding:10px 12px;font-size:13px;max-width:85%;line-height:1.6;">
+            Hola! Soy tu asistente financiero personal. Tengo acceso a tus datos reales de ingresos, gastos, deudas y ahorros. En que les puedo ayudar hoy?
+          </div>
+        </div>
+      </div>
+      <div id="ia-sugerencias" style="padding:0 14px 8px;display:flex;gap:6px;overflow-x:auto;"></div>
+      <div style="padding:10px 14px 20px;border-top:0.5px solid var(--brd);display:flex;gap:8px;background:var(--bg-0);">
+        <input id="ia-input" placeholder="Escribe tu pregunta..." style="flex:1;font-size:13px;" onkeydown="if(event.key==='Enter')enviarIA()">
+        <button class="btn btn-primary" onclick="enviarIA()" style="flex-shrink:0;padding:9px 14px;">&#10148;</button>
+      </div>
+    </div>
+
+    <!-- CONFIGURACION -->
+    <div class="view" id="view-config">
+      <div class="page-content" style="padding-top:14px;">
+        <div class="card" style="margin-bottom:10px;">
+          <div style="font-size:13px;font-weight:500;margin-bottom:6px;">Tu codigo de familia</div>
+          <div style="font-size:11px;color:var(--txt-1);margin-bottom:8px;">Comparte este codigo con tu pareja para que se una:</div>
+          <div style="font-size:28px;font-weight:700;letter-spacing:8px;text-align:center;color:var(--acc);padding:10px;" id="codigo-display">------</div>
+        </div>
+        <div class="card" style="margin-bottom:10px;">
+          <div style="font-size:13px;font-weight:500;margin-bottom:12px;">Unirse a una familia existente</div>
+          <div class="form-group">
+            <div class="lbl">Codigo de familia</div>
+            <input id="codigo-union" placeholder="Ej: ABC123" style="text-transform:uppercase;letter-spacing:4px;text-align:center;">
+          </div>
+          <button class="btn btn-primary btn-full" onclick="unirseAFamilia()">Unirse a familia</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /views -->
+
+  <!-- MODAL DEUDA (Punto 3: con edicion y clase) -->
+  <div class="modal-overlay" id="modal-deuda">
+    <div class="modal-sheet">
+      <div class="modal-title">
+        <span id="modal-deuda-title">Nueva deuda</span>
+        <button class="icon-btn" onclick="cerrarModal('modal-deuda')">&#10005;</button>
+      </div>
+      <div class="form-group"><div class="lbl">Nombre *</div><input id="d-nombre" placeholder="Ej: Tarjeta Visa"></div>
+      <div class="form-group">
+        <div class="lbl">Clasificacion</div>
+        <select id="d-clase">
+          <option>Tarjeta</option><option>Prestamo</option><option>Hipoteca</option><option>Vehiculo</option><option>Personal</option><option>Otro</option>
+        </select>
+      </div>
+      <div class="grid-2">
+        <div class="form-group"><div class="lbl">Monto original (CRC) *</div><input id="d-original" type="number" min="1" placeholder="0"></div>
+        <div class="form-group"><div class="lbl">Monto restante (CRC)</div><input id="d-restante" type="number" min="0" placeholder="Igual al original si no ha pagado"></div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group"><div class="lbl">Tasa anual (%) <span style="color:var(--txt-2);font-size:10px;">opcional</span></div><input id="d-tasa" type="number" min="0" step="0.1" placeholder="0"></div>
+        <div class="form-group"><div class="lbl">Cuota mensual (CRC) <span style="color:var(--txt-2);font-size:10px;">opcional</span></div><input id="d-cuota" type="number" min="0" placeholder="0"></div>
+      </div>
+      <div class="form-group"><div class="lbl">Pago minimo (CRC) <span style="color:var(--txt-2);font-size:10px;">opcional</span></div><input id="d-minimo" type="number" min="0" placeholder="0"></div>
+      <div class="form-group">
+        <div class="lbl">Tipo</div>
+        <div class="type-selector">
+          <button class="type-btn active" id="d-tipo-personal"    onclick="selectTipoDeuda('personal')">Personal</button>
+          <button class="type-btn"        id="d-tipo-compartida"  onclick="selectTipoDeuda('compartida')">Compartida</button>
+        </div>
+      </div>
+      <div id="d-error" class="alert alert-error" style="display:none;"></div>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button class="btn" style="flex:1;" onclick="cerrarModal('modal-deuda')">Cancelar</button>
+        <button class="btn btn-primary" style="flex:1;" onclick="guardarDeuda()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL META AHORRO -->
+  <div class="modal-overlay" id="modal-meta">
+    <div class="modal-sheet">
+      <div class="modal-title">
+        Nueva meta de ahorro
+        <button class="icon-btn" onclick="cerrarModal('modal-meta')">&#10005;</button>
+      </div>
+      <div class="form-group"><div class="lbl">Nombre *</div><input id="m-nombre" placeholder="Ej: Vacaciones en Europa"></div>
+      <div class="grid-2">
+        <div class="form-group"><div class="lbl">Objetivo (CRC) *</div><input id="m-meta" type="number" min="1" placeholder="0"></div>
+        <div class="form-group"><div class="lbl">Ya ahorrado (CRC)</div><input id="m-actual" type="number" min="0" placeholder="0"></div>
+      </div>
+      <div class="form-group">
+        <div class="lbl">Tipo de meta</div>
+        <div class="type-selector">
+          <button class="type-btn active" id="m-tipo-compartido" onclick="selectTipoMeta('compartido')">Compartida</button>
+          <button class="type-btn"        id="m-tipo-personal"   onclick="selectTipoMeta('personal')">Personal</button>
+        </div>
+      </div>
+      <div id="m-propietario-wrap" style="display:none;" class="form-group">
+        <div class="lbl">De quien?</div>
+        <div class="type-selector" id="m-propietarios"></div>
+      </div>
+      <div id="m-error" class="alert alert-error" style="display:none;"></div>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button class="btn" style="flex:1;" onclick="cerrarModal('modal-meta')">Cancelar</button>
+        <button class="btn btn-primary" style="flex:1;" onclick="guardarMeta()">Crear meta</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL MOVIMIENTO -->
+  <div class="modal-overlay" id="modal-mov">
+    <div class="modal-sheet">
+      <div class="modal-title" id="modal-mov-title">
+        Nuevo movimiento
+        <button class="icon-btn" onclick="cerrarModal('modal-mov')">&#10005;</button>
+      </div>
+      <div class="type-selector" id="mov-tipo-selector" style="margin-bottom:12px;">
+        <button class="type-btn active" id="mov-tipo-gasto"   onclick="selectTipoMov('gasto')">Gasto</button>
+        <button class="type-btn"        id="mov-tipo-ingreso" onclick="selectTipoMov('ingreso')">Ingreso</button>
+      </div>
+      <div class="form-group"><div class="lbl">Descripcion *</div><input id="mov-desc" placeholder="Ej: Supermercado"></div>
+      <div class="form-group"><div class="lbl">Monto (CRC) *</div><input id="mov-monto" type="number" min="1" placeholder="0" oninput="if(S.tipoGasto==='compartido') actualizarAportesSugeridos()"></div>
+      <div class="form-group"><div class="lbl">Categoria</div><select id="mov-cat"></select></div>
+      <div id="mov-tipo-gasto-wrap" class="form-group">
+        <div class="lbl">Tipo de gasto</div>
+        <div class="type-selector">
+          <button class="type-btn active" id="mov-tg-personal"    onclick="selectTipoGasto('personal')">Personal</button>
+          <button class="type-btn"        id="mov-tg-compartido"  onclick="selectTipoGasto('compartido')">Compartido</button>
+        </div>
+        <div id="mov-prop-nota" style="display:none;font-size:11px;color:var(--txt-1);margin-top:6px;padding:6px 8px;background:var(--acc-bg);border-radius:6px;">
+          Define cuanto aporta cada persona. Se precarga la sugerencia proporcional segun ingresos — puedes editarla.
+        </div>
+        <div id="mov-aportes-wrap" style="display:none;margin-top:10px;">
+          <div style="font-size:12px;font-weight:500;color:var(--txt-0);margin-bottom:8px;">Aporte de cada persona</div>
+          <div id="mov-aportes-fields"></div>
+          <div style="font-size:10px;color:var(--txt-2);margin-top:6px;">Los montos son editables. La suma no necesita ser exacta al total.</div>
+        </div>
+      </div>
+      <!-- Vinculo a deuda -->
+      <div class="form-group" id="mov-deuda-wrap">
+        <div class="lbl">Vincular a deuda <span style="color:var(--txt-2);font-size:10px;">opcional</span></div>
+        <select id="mov-deuda-id">
+          <option value="">No vincular a ninguna deuda</option>
+        </select>
+        <div id="mov-deuda-nota" style="display:none;font-size:11px;color:var(--success);margin-top:5px;padding:5px 8px;background:var(--acc-bg);border-radius:6px;">
+          Al guardar, el saldo de esa deuda se reducira automaticamente por este monto.
+        </div>
+      </div>
+      <input type="hidden" id="mov-id" value="">
+      <div id="mov-error" class="alert alert-error" style="display:none;"></div>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button class="btn" style="flex:1;" onclick="cerrarModal('modal-mov')">Cancelar</button>
+        <button class="btn btn-primary" style="flex:1;" id="mov-guardar-btn" onclick="guardarMovimiento()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /app-root -->
+<script src="/static/js/app.js"></script>
+</body>
+</html>

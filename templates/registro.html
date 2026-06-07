@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FinanzasDúo — Registro</title>
+  <link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body class="auth-body">
+  <div class="auth-card">
+    <div class="auth-logo">💰 FinanzasDúo</div>
+    <h2 class="auth-title">Crear cuenta</h2>
+    <p style="font-size:13px;color:var(--txt-1);text-align:center;margin-bottom:20px;">Al registrarte se crea tu familia. Luego puedes invitar a tu pareja con un código.</p>
+
+    <div id="error" class="alert alert-error" style="display:none"></div>
+
+    <div class="form-group">
+      <label class="lbl">Tu nombre</label>
+      <input id="nombre" type="text" placeholder="Ej: David">
+    </div>
+    <div class="form-group">
+      <label class="lbl">Correo electrónico</label>
+      <input id="email" type="email" placeholder="tu@correo.com">
+    </div>
+    <div class="form-group">
+      <label class="lbl">Contraseña</label>
+      <input id="password" type="password" placeholder="Mínimo 6 caracteres">
+    </div>
+
+    <button class="btn btn-primary btn-full" id="btn-registro">Crear cuenta</button>
+    <p class="auth-link">¿Ya tienes cuenta? <a href="/login">Inicia sesión</a></p>
+
+    <div id="success-panel" style="display:none;margin-top:20px;padding:16px;background:var(--acc-bg);border-radius:10px;border:1px solid var(--acc);">
+      <div style="font-size:14px;font-weight:500;margin-bottom:6px;">✅ Cuenta creada</div>
+      <div style="font-size:12px;color:var(--txt-1);margin-bottom:10px;">Tu código de familia para que Nicole se una:</div>
+      <div id="codigo-familia" style="font-size:24px;font-weight:700;letter-spacing:6px;text-align:center;color:var(--acc);margin:10px 0;"></div>
+      <div style="font-size:11px;color:var(--txt-1);text-align:center;">Nicole debe ir a Configuración → Unirse a familia → ingresar este código</div>
+      <a href="/" class="btn btn-primary btn-full" style="margin-top:12px;display:block;text-align:center;">Ir a la app →</a>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('btn-registro').addEventListener('click', async () => {
+      const nombre   = document.getElementById('nombre').value.trim();
+      const email    = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const errEl    = document.getElementById('error');
+      errEl.style.display = 'none';
+      if (!nombre || !email || !password) { errEl.textContent = 'Completa todos los campos'; errEl.style.display = 'block'; return; }
+      if (password.length < 6) { errEl.textContent = 'La contraseña debe tener al menos 6 caracteres'; errEl.style.display = 'block'; return; }
+      const btn = document.getElementById('btn-registro');
+      btn.textContent = 'Creando...'; btn.disabled = true;
+      try {
+        const res  = await fetch('/api/auth/registro', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({nombre, email, password}) });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Error');
+        document.getElementById('codigo-familia').textContent = data.usuario.codigo_familia;
+        document.getElementById('success-panel').style.display = 'block';
+        btn.style.display = 'none';
+      } catch(e) {
+        errEl.textContent = e.message; errEl.style.display = 'block';
+        btn.textContent = 'Crear cuenta'; btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
