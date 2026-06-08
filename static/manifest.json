@@ -1,1 +1,12 @@
-{"name":"FinanzasDúo","short_name":"FinanzasDúo","start_url":"/","display":"standalone","theme_color":"#1D9E75","background_color":"#f4f4f2","icons":[{"src":"/static/img/icon.png","sizes":"192x192","type":"image/png"}]}
+{
+  "name": "FinanzasDúo",
+  "short_name": "FinanzasDúo",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#6A1FC2",
+  "background_color": "#6A1FC2",
+  "icons": [
+    {"src": "/static/img/icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "/static/img/icon-512.png", "sizes": "512x512", "type": "image/png"}
+  ]
+}
